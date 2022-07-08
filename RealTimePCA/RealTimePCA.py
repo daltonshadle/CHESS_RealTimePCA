@@ -19,20 +19,14 @@ from RTPCA_Widgets import pca_parameters_selector_widget
 #*****************************************************************************
 #%% USER INPUT
 
-raw_dir = "/Users/jacksonearls/documents/GitHub/CHESS_RealTimeDIC/example/"
-aux_dir = "/Users/jacksonearls/documents/GitHub/CHESS_RealTimeDIC/example/"
+raw_dir = "/Users/jacksonearls/documents/GitHub/CHESS_RealTimePCA/example/"
+aux_dir = "/Users/jacksonearls/documents/GitHub/CHESS_RealTimePCA/example/"
 output_fname = 'dictest_output.txt'
-img_template = 'dic_%06i.tiff'
-sample_width = 1 # (mm) cross-sectional width of the sample for macro stress calculations
-sample_thickness = 1 # (mm) cross-sectional thickness of the sample for macro stress calculations
-sample_orientation_in_img = 'v' # describes sample orientaiton in image, 
-                                # can be 'v' = vertical, 'h'=horizontal
 
 #*****************************************************************************
 #%% INITIALIZE OBJECTS
 exp_pca_paths = pca_paths(base_dir=raw_dir, img_dir=raw_dir, 
-                          img_fname_template=img_template, output_dir=aux_dir, 
-                          output_fname=output_fname)
+                          output_dir=aux_dir, output_fname=output_fname)
 exp_pca_mats = pca_matrices()
 
 #*****************************************************************************

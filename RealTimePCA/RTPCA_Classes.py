@@ -16,6 +16,10 @@ import pandas as pd
 
 import tkinter as tk
 
+from hexrd import imageseries
+
+import matplotlib.pyplot as plt
+
 # ***************************************************************************
 # CLASS DECLARATION
 class pca_matrices():
@@ -62,15 +66,15 @@ class pca_paths():
     def __init__(self, 
                  base_dir=os.getcwd(),
                  img_dir=os.getcwd(),
-                 img_fname_template='pca_%06i.tif',
+                 first_img_fname="",
                  output_dir=os.getcwd(),
                  output_fname='output.txt'
                  ):
         
         # intialize class variables
+        self._first_img_fname = first_img_fname
         self._base_dir = base_dir
         self._img_dir = img_dir
-        self._img_fname_template = img_fname_template
         self._output_dir = output_dir
         self._output_fname = output_fname
         self._first_img_num = 0
@@ -95,13 +99,16 @@ class pca_paths():
             self._img_dir = img_dir
         else:
             raise ValueError("Img directory '%s' does not exists" %(img_dir))
-    
+
     @property
-    def img_fname_template(self):
-        return self._img_fname_template
-    @img_fname_template.setter
-    def img_fname_template(self, img_fname_template):
-        self._img_fname_template = img_fname_template
+    def first_img_fname(self):
+        return self._first_img_fname
+    @first_img_fname.setter
+    def first_img_fname(self, first_img_fname):
+        if os.path.exists(first_img_fname):
+            self._first_img_fname = first_img_fname
+        else:
+            raise ValueError("Img directory '%s' does not exists" %(first_img_fname))
     
     @property
     def output_dir(self):
@@ -133,31 +140,31 @@ class pca_paths():
     def open_first_image(self):
         root = tk.Tk()
         root.withdraw()
+        path = self.base_dir
         
-        first_img_dir = tk.filedialog.askopenfilename(initialdir=self._img_dir, 
-                                                    defaultextension='.tiff',
-                                                    filetypes=[("TIFF Files", "*.tiff"),
-                                                               ("TIFF Files", "*.tif"),
+        file_dir = tk.filedialog.askopenfilename(initialdir=path,
+                                                    defaultextension=".npz",
+                                                    filetypes=[("npz files", "*.npz"),
                                                                ("All Files", "*.*")],
-                                                    title='Select First pca Image File')
+                                                    title="Select npz File")
         
-        if not first_img_dir:
+        if not file_dir:
             quit()
         else:
             try:
-                self.img_dir = os.path.dirname(first_img_dir)
-                first_img_fname = os.path.basename(first_img_dir)
-                self.first_img_num = int((first_img_fname.split('_')[-1]).split('.')[0])
+                self.img_dir = os.path.dirname(file_dir)
+                self._first_img_fname = os.path.basename(file_dir)
+                self.first_img_num = int(self._first_img_fname.split('_')[1])
             except Exception as e:
                 print(e)
                 self.open_first_image()
-    
-    def get_img_num_dir(self, img_num):
-        return os.path.join(self._img_dir, self._img_fname_template %(img_num))
+
     def get_first_img_dir(self):
-        return self.get_img_num_dir(self._first_img_num)
+        return os.path.join(self._img_dir,self._first_img_fname)
     def get_output_full_dir(self):
         return os.path.join(self._output_dir, self._output_fname)
+    def get_first_img_num(self):
+        return self.first_img_num
     
     # str and rep
     def __repr__(self):
@@ -165,7 +172,6 @@ class pca_paths():
     def __str__(self):
         class_dict = {'base_dir' : self._base_dir,
         'img_dir' : self._img_dir,
-        'img_fname_template' : self._img_fname_template,
         'output_dir' : self._output_dir,
         'output_fname' : self._output_fname,
         'first_img_num' : self._first_img_num}
