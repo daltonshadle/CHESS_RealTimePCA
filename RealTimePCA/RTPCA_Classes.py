@@ -25,11 +25,15 @@ import matplotlib.pyplot as plt
 class pca_matrices():
     def __init__(self, 
                  pca_par_mat=np.array([]), 
-                 box_points=np.array([])):
+                 box_points=np.array([]),
+                 image_files=np.array([]),
+                 pca_matrix=np.array([])):
         
         # initialize class variables
         self._pca_par_mat = pca_par_mat
         self._box_points= box_points
+        self._image_files = image_files
+        self._pca_matrix = pca_matrix
     
     # setters and getters
     @property
@@ -45,6 +49,20 @@ class pca_matrices():
     @box_points.setter
     def box_points(self, box_points):
         self._box_points = box_points
+
+    @property
+    def image_files(self):
+        return self._image_files
+    @image_files.setter
+    def image_files(self, image_files):
+        self._image_files = image_files
+
+    @property
+    def pca_matrix(self):
+        return self._pca_matrix
+    @pca_matrix.setter
+    def pca_matrix(self, pca_matrix):
+        self._pca_matrix = pca_matrix
     
     def calc_bounding_box(self):
         if len(self._box_points.shape) == 2:
@@ -68,7 +86,8 @@ class pca_paths():
                  img_dir=os.getcwd(),
                  first_img_fname="",
                  output_dir=os.getcwd(),
-                 output_fname='output.txt'
+                 output_fname='output.txt',
+                 first_img_num = 0
                  ):
         
         # intialize class variables
@@ -77,7 +96,7 @@ class pca_paths():
         self._img_dir = img_dir
         self._output_dir = output_dir
         self._output_fname = output_fname
-        self._first_img_num = 0
+        self._first_img_num = first_img_num
         
     # setters and getters  
     @property
@@ -158,6 +177,24 @@ class pca_paths():
             except Exception as e:
                 print(e)
                 self.open_first_image()
+    
+    def open_remaining_imgs(self, pca_mats):
+        root = tk.Tk()
+        root.withdraw()
+        path = self.base_dir
+        filename_tuple = tk.filedialog.askopenfilenames(initialdir=path,
+                                                            defaultextension=".npz",
+                                                            filetypes=[("npz files", "*.npz"),
+                                                                     ("All Files", "*.*")],
+                                                            title="Select remaining npz files")
+        if not filename_tuple:
+            quit()
+        else:
+            try:
+                return filename_tuple
+            except Exception as e:
+                print(e)
+                self.open_remaining_imgs()
 
     def get_first_img_dir(self):
         return os.path.join(self._img_dir,self._first_img_fname)
@@ -165,7 +202,8 @@ class pca_paths():
         return os.path.join(self._output_dir, self._output_fname)
     def get_first_img_num(self):
         return self.first_img_num
-    
+    def get_first_img_num2(self):
+        return int(self._first_img_fname.split('_')[3].split('-')[0])
     # str and rep
     def __repr__(self):
         return "pca_paths()\n" + self.__str__()
@@ -177,4 +215,3 @@ class pca_paths():
         'first_img_num' : self._first_img_num}
         
         return str(class_dict)
-
