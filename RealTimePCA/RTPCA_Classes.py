@@ -178,7 +178,7 @@ class pca_paths():
                 print(e)
                 self.open_first_image()
     
-    def open_remaining_imgs(self, pca_mats):
+    def open_remaining_imgs(self):
         root = tk.Tk()
         root.withdraw()
         path = self.base_dir

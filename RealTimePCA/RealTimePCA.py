@@ -17,9 +17,12 @@ import numpy as np
 import os
 from hexrd import imageseries
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from RTPCA_Classes import pca_paths, pca_matrices
 from RTPCA_Widgets import pca_parameters_selector_widget
+from sklearn import decomposition
+from sklearn.preprocessing import Normalizer
 #*****************************************************************************
 #%% USER INPUT
 
@@ -44,7 +47,7 @@ dpsw = pca_parameters_selector_widget(exp_pca_paths, exp_pca_mats, adjust_grid=T
 
 #*****************************************************************************
 #%% READ IN THE REST OF THE IMAGES
-fname_tuple = exp_pca_paths.open_remaining_imgs(exp_pca_mats)
+fname_tuple = exp_pca_paths.open_remaining_imgs()
 img_files = []
 for fname in fname_tuple:
     ims = imageseries.open(fname, format='frame-cache')
@@ -68,3 +71,29 @@ for image in exp_pca_mats.image_files:
 exp_pca_mats.pca_matrix = np.array(mat)
 
 #*****************************************************************************
+#%% FIT AND TRANSFORM PCA MATRIX
+num_cmpts = input("How many principle components would you like to analyze? Choose from 1 to 5 principle components.\n")
+num_cmpts = int(num_cmpts)
+while num_cmpts > 5 or num_cmpts < 1:
+    num_cmpts = input("Choose from 1 to 5 principle components.\n")
+    num_cmpts = int(num_cmpts)
+PCA_func = decomposition.PCA(n_components=num_cmpts)
+transformer = Normalizer().fit(exp_pca_mats.pca_matrix)
+exp_pca_mats.pca_matrix = transformer.transform(exp_pca_mats.pca_matrix)
+PCs = PCA_func.fit_transform(exp_pca_mats.pca_matrix)
+var_ratio = PCA_func.explained_variance_ratio_
+
+# plot results
+for index in range(num_cmpts):
+    fig = plt.figure()
+    plt.plot(PCs[:, index])
+    plt.xlabel('image numbers')
+    pc = "Principle Component {}".format(index+1)
+    plt.ylabel(pc)
+
+fig = plt.figure()
+plt.scatter(PCs[:, 0], PCs[:, 1])
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+
+plt.show()
