@@ -72,7 +72,11 @@ exp_pca_mats.pca_matrix = np.array(mat)
 
 #*****************************************************************************
 #%% FIT AND TRANSFORM PCA MATRIX
-num_cmpts = 2 # this can probably be made as user input for user to select (say that it must be <=5 for now)
+num_cmpts = input("How many principle components would you like to analyze? Choose from 1 to 5 principle components.\n")
+num_cmpts = int(num_cmpts)
+while num_cmpts > 5 or num_cmpts < 1:
+    num_cmpts = input("Choose from 1 to 5 principle components.\n")
+    num_cmpts = int(num_cmpts)
 PCA_func = decomposition.PCA(n_components=num_cmpts)
 transformer = Normalizer().fit(exp_pca_mats.pca_matrix)
 exp_pca_mats.pca_matrix = transformer.transform(exp_pca_mats.pca_matrix)
@@ -80,15 +84,12 @@ PCs = PCA_func.fit_transform(exp_pca_mats.pca_matrix)
 var_ratio = PCA_func.explained_variance_ratio_
 
 # plot results
-fig = plt.figure()
-plt.plot(PCs[:, 0])
-plt.xlabel('image numbers')
-plt.ylabel('Principal Component 1')
-
-fig = plt.figure()
-plt.plot(PCs[:, 1])
-plt.xlabel('image numbers')
-plt.ylabel('Principal Component 2')
+for index in range(num_cmpts):
+    fig = plt.figure()
+    plt.plot(PCs[:, index])
+    plt.xlabel('image numbers')
+    pc = "Principle Component {}".format(index+1)
+    plt.ylabel(pc)
 
 fig = plt.figure()
 plt.scatter(PCs[:, 0], PCs[:, 1])
