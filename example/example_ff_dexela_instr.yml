@@ -58,8 +58,8 @@ detectors:
     - 5.0
     - 5.0
     pixels:
-      columns: 3072
-      rows: 3888
+      columns: 3073
+      rows: 3889
       size:
       - 0.0748
       - 0.0748
@@ -78,8 +78,8 @@ detectors:
     - 2.0
     - 2.0
     pixels:
-      columns: 3072
-      rows: 3888
+      columns: 3073
+      rows: 3889
       size:
       - 0.0748
       - 0.0748

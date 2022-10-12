@@ -16,6 +16,8 @@ import numpy as np
 
 import tkinter as tk
 
+import matplotlib.pyplot as plt
+
 from hexrd import imageseries
 from hexrd import config
 
@@ -26,14 +28,18 @@ class pca_matrices():
     def __init__(self,
                  pca_par_mat=np.array([]),
                  box_points_dict={},
+                 rings_mask_dict={},
                  ims_list_dict={},
+                 det_mask_list_dict={},
                  pca_matrix=np.array([]),
                  det_keys=['det']):
 
         # initialize class variables
         self._pca_par_mat = pca_par_mat
         self._box_points_dict = box_points_dict
+        self._rings_mask_dict = rings_mask_dict
         self._ims_list_dict = ims_list_dict
+        self._det_mask_list_dict = det_mask_list_dict
         self._pca_matrix = pca_matrix
         self._det_keys = list(det_keys)
         
@@ -54,6 +60,13 @@ class pca_matrices():
     @box_points_dict.setter
     def box_points_dict(self, box_points_dict):
         self._box_points_dict = box_points_dict
+    
+    @property
+    def rings_mask_dict(self):
+        return self._rings_mask_dict
+    @rings_mask_dict.setter
+    def rings_mask_dict(self, rings_mask_dict):
+        self._rings_mask_dict = rings_mask_dict
 
     @property
     def ims_list_dict(self):
@@ -61,6 +74,13 @@ class pca_matrices():
     @ims_list_dict.setter
     def ims_list_dict(self, ims_list_dict):
         self._ims_list_dict = ims_list_dict
+    
+    @property
+    def det_mask_list_dict(self):
+        return self._det_mask_list_dict
+    @det_mask_list_dict.setter
+    def det_mask_list_dict(self, det_mask_list_dict):
+        self._det_mask_list_dict = det_mask_list_dict
 
     @property
     def pca_matrix(self):
@@ -82,28 +102,37 @@ class pca_matrices():
         for det_key in self.det_keys:
             self._box_points_dict[det_key] = np.array([])
     
-    def make_det_image_mask(self, img_size):
+    def make_det_image_mask(self, det_dict):
         img_mask_dict = {}
         
         for det_key in self.det_keys:
-            if self._box_points_dict[det_key].size == 0:
+            img_size = [det_dict[det_key].rows, det_dict[det_key].cols]
+            if self._box_points_dict[det_key].size == 0 and len(self._rings_mask_dict) == 0:
                 img_mask = np.ones(img_size)
             else:
                 img_mask = np.zeros(img_size)
                 for i in range(self._box_points_dict[det_key].shape[0]):
                     pts = self._box_points_dict[det_key][i, :, :]
                     pts = np.floor(pts).astype(int)
-                    img_mask[pts[0, 0]:pts[1, 0], pts[0, 1]:pts[1, 1]] = 1
-                
+                    # pts = [min_x, min_y; max_x, max_y]
+                    # pts = [min_col, min_row; max_col, max_row]
+                    img_mask[pts[0, 1]:pts[1, 1], pts[0, 0]:pts[1, 0]] = 1
+            
             img_mask_dict[det_key] = img_mask
+            if len(self._rings_mask_dict) > 0:
+                img_mask_dict[det_key] = img_mask_dict[det_key] + self._rings_mask_dict[det_key]
+                
         
+        self.det_mask_list_dict = img_mask_dict
         return img_mask_dict
     
     def load_ims_from_path(self, path, is_frame_cache=True):
         if is_frame_cache:
+            # frame cahce
             ims = imageseries.open(path, format='frame-cache')
         else:
-            ims = imageseries.open(path, format='raw-image')
+            # raw
+            ims = imageseries.open(path, format='hdf5', path='/imageseries')
         return ims
          
     def load_img_list(self, img_path_list_dict, img_mask_dict=None, ims_length=2, 
@@ -132,7 +161,37 @@ class pca_matrices():
         self._ims_list_dict = img_data_list_dict
         return img_data_list_dict
         
+    def assemble_pca_matrix(self):
+        for i, det_key in enumerate(self._det_keys):
+            
+            if i == 0:
+                self._pca_matrix = self._ims_list_dict[det_key]
+            else:
+                self._pca_matrix = np.hstack([self._pca_matrix, self._ims_list_dict[det_key]])
+        return self._pca_matrix
+    
+    def reassemble_image_frame_from_roi(self, frame_num=0):
+        reassbmle_frame_dict = {}
+        for det_key in self.det_keys:
+            re_frame = np.zeros(self._det_mask_list_dict[det_key].shape)
+            s_ind = int(frame_num * np.sum(self._det_mask_list_dict[det_key]))
+            e_ind = int((frame_num + 1) * np.sum(self._det_mask_list_dict[det_key]))
+            re_frame[self._det_mask_list_dict[det_key].astype(bool)] = self._ims_list_dict[det_key][0, s_ind:e_ind]
+            reassbmle_frame_dict[det_key] = re_frame
+            
+        return reassbmle_frame_dict
+    
+    def plot_reassemble_image_frame_from_roi(self, frame_num=0):
+        re = self.reassemble_image_frame_from_roi(frame_num=frame_num)
         
+        fig = plt.figure()
+        ax = fig.subplots(nrows=1, ncols=len(re))
+        
+        for i, det_key in enumerate(self.det_keys):
+            ax[i].imshow(re[det_key], vmax=100)
+            ax[i].imshow(self._det_mask_list_dict[det_key], cmap='Reds', alpha=0.1)
+            
+        plt.show()
     
     def load_pca_matrices_from_file(self, pca_mats_dir):
         with open(pca_mats_dir, "rb") as input_file:

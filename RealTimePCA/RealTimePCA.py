@@ -12,10 +12,10 @@ Created on Tue Mar  8 14:57:43 2022
 
 
 # Notes
-# - read in config file
-# - work with multiple detectors (but only dexelas for now, frame-caches or raws)
-# - work with plane data for rings check box when selecting ROI (eta angles)
-# - some real-time data reading
+# + read in config file
+# + work with multiple detectors (but only dexelas for now, frame-caches or raws)
+# + work with plane data for rings check box when selecting ROI (eta angles)
+# - some real-time data reading (updating path list)
 # - better plotting, have a realtime aspect of PCA plots, maybe output to realtime text file, read to plot in sepearte script
 # - work with DIC data, again realtime text file and plotting separate probably best
 # - convolution of data before PCA to establish a basis of known behavior
@@ -23,18 +23,14 @@ Created on Tue Mar  8 14:57:43 2022
 
 #*****************************************************************************
 #%% IMPORTS
-import tkinter as tk
-from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import os
+
 import sys
 
-from hexrd import imageseries
-from hexrd import config
-
 import numpy as np
+
 from sklearn import decomposition
 from sklearn.preprocessing import Normalizer
 
@@ -47,6 +43,8 @@ from RTPCA_Widgets import pca_parameters_selector_widget
 
 script_base_dir = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/'
 
+sample_raw_stem = '/media/djs522/djs522_nov2020/chess_2020_11/ceo2/*/ff/%s*.h5' 
+sample_raw_stem = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/*%s*.npz'
 sample_raw_dir = script_base_dir
 sample_aux_dir = script_base_dir
 output_fname = 'dictest_output.txt'
@@ -85,34 +83,24 @@ else:
         raise ValueError("ROI file could not be loaded. Use GUI to select ROI or fix ROI file path.")
         
 #*****************************************************************************
-#%% READ IN THE REST OF THE IMAGES
-path = '/media/djs522/djs522_nov2020/chess_2020_11/ceo2/*/ff/%s*.h5' 
-path = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/*%s*.npz'
-temp = exp_pca_paths.get_all_image_paths_dict(image_path_stem=path)
+#%% READ IN THE CURRENT IMAGES
 
-#%%
-fname_tuple = exp_pca_paths.open_remaining_imgs()
-img_files = []
-for fname in fname_tuple:
-    ims = imageseries.open(fname, format='frame-cache')
-    img_files.append(ims[0])
-first_img_fname = os.path.join(exp_pca_paths.img_dir, exp_pca_paths.first_img_fname)
-ims = imageseries.open(first_img_fname, format='frame-cache')
-img_files.append(ims[0])
-exp_pca_mats.image_files = np.array(img_files)
+img_path_list_dict = exp_pca_paths.get_all_image_paths_dict(image_path_stem=sample_raw_stem)
+
+img_mask_dict = exp_pca_mats.make_det_image_mask(exp_pca_paths.config.instrument.hedm.detectors) # this is a hard coded item, should be fixed by passing pca_paths for config
+
+img_data = exp_pca_mats.load_img_list(img_path_list_dict, img_mask_dict=img_mask_dict, ims_length=2, 
+                                      is_frame_cache=exp_pca_paths.is_frame_cache, 
+                                      frane_num_or_img_aggregation_options=None)
 
 #*****************************************************************************
-#%% CREATE THE PCA MATRIX
-pts = exp_pca_mats.box_points
-mat = []
+#%% ASSEMBLE THE PCA MATRIX
+pca_matrix = exp_pca_mats.assemble_pca_matrix()
 
-for image in exp_pca_mats.image_files:
-    reduced_image = []
-    for index in range(int(len(pts[0])/2)):
-        reduced_image.append(image[int(pts[0][2*index+1]):int(pts[1][2*index+1]),int(pts[0][2*index]):int(pts[1][2*index])].flatten())
-    reduced_image = np.array(reduced_image, dtype=object)
-    mat.append(np.hstack(reduced_image))
-exp_pca_mats.pca_matrix = np.array(mat)
+#*****************************************************************************
+#%% CHECK ROI DATA
+if use_gui:
+    exp_pca_mats.plot_reassemble_image_frame_from_roi(frame_num=0)
 
 #*****************************************************************************
 #%% FIT AND TRANSFORM PCA MATRIX

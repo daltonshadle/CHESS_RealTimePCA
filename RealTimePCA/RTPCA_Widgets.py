@@ -48,19 +48,30 @@ class pca_parameters_selector_widget():
         self.fig = Figure()
         self.fig_title = "Use the left mouse button to select two corners of a rectangular region of interest"
         self.first_img_ax = self.fig.subplots(nrows=1, ncols=self.num_det)
-        self.fig.suptitle(self.fig_title)
-        for i, det_key in enumerate(self.first_ims_dict.keys()):
-            self.first_img_ax[i].imshow(self.first_ims_dict[det_key][0], vmax=100)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.window)
         self.canvas.get_tk_widget().place(x=0, y=0, height=fig_h, width=fig_w)
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.window)
-        
         
         self.bound_box_dict = {}
         self.num_clicks_dict = {}
         for i, det_key in enumerate(self.first_ims_dict.keys()):
             self.bound_box_dict[det_key] = np.empty([2, 2])
             self.num_clicks_dict[det_key] = 0
+        
+        pd = self.pca_paths.config.material.plane_data
+        self.panel_mask_dict = {}
+        self.use_rings = tk.IntVar()
+        for det_key in pca_mats.det_keys:
+            panel = self.pca_paths.config.instrument.hedm.detectors[det_key]
+            panel_tth, panel_eta = panel.pixel_angles()
+            
+            panel_mask = np.zeros(panel_tth.shape)
+            for tth in pd.getTThRanges():
+                panel_mask += ((panel_tth > tth[0]) & (panel_tth < tth[1]))
+            
+            self.panel_mask_dict[det_key] = panel_mask
+        
+        self.update_plot()
         
         # handle mouse cursor button for figure
         def on_fig_cursor_press(event):
@@ -137,16 +148,28 @@ class pca_parameters_selector_widget():
         
         # Add a button for clearing boxes
         def clear_boxes():
-            self.fig.suptitle(self.fig_title)
-            for i, det_key in enumerate(self.first_ims_dict.keys()):
-                self.first_img_ax[i].clear()
-                self.first_img_ax[i].imshow(self.first_ims_dict[det_key][0], vmax=100)
-            self.canvas.draw()
             self.pca_mats.reset_box_points_dict()
+            self.update_plot()
             
         self.clear_button = tk.Button(self.window, text="Clear Boxes", command=clear_boxes)
         self.clear_button.place(x=button_x, y=300, height=button_h, width=button_w)
+        
+        # Add a checkbox for using rings
+        def use_rings_on_click():
+            self.use_rings.set((self.use_rings.get() + 1) % 2)
+            
+            # !!!TODO: this should be made better, maybe a flag in pca_mats to use or not, and not resetting a potentially large variable
+            if self.use_rings.get() == 1:
+                self.pca_mats.rings_mask_dict = self.panel_mask_dict
+            else:
+                self.pca_mats.rings_mask_dict = {}
+            self.update_plot()
+            
+        self.use_rings_check = tk.Checkbutton(self.window, text='Use Rings', variable=self.use_rings, 
+                                              onvalue=1, offvalue=0, command=use_rings_on_click)
+        self.use_rings_check.place(x=button_x, y=350, height=button_h, width=button_w)
 
+        
         # Add a button for quitting
         def on_closing(root):
             root.destroy()
@@ -155,6 +178,7 @@ class pca_parameters_selector_widget():
         self.quit_button.place(x=button_x, y=700, height=button_h, width=button_w)
         self.window.protocol("WM_DELETE_WINDOW", lambda root=self.window:on_closing(root))
         self.window.mainloop()
+        
     
         
     def update_plot(self):
@@ -165,9 +189,12 @@ class pca_parameters_selector_widget():
             
             for j in range(self.pca_mats.box_points_dict[det_key].shape[0]):             
                 bbc = self.pca_mats.box_points_dict[det_key][j, :, :]
-                selected_rect = patches.Rectangle((bbc[0, 0],bbc[0,1]), bbc[1,0]-bbc[0,0], 
+                selected_rect = patches.Rectangle((bbc[0,0],bbc[0,1]), bbc[1,0]-bbc[0,0], 
                                         bbc[1,1]-bbc[0,1],linewidth=1, edgecolor='r', facecolor='none')
                 self.first_img_ax[i].add_patch(selected_rect)
+            
+            if self.use_rings.get() == 1:
+                self.first_img_ax[i].imshow(self.panel_mask_dict[det_key], vmax=1, cmap='Reds', alpha=0.1)
             
         self.canvas.draw()
     
