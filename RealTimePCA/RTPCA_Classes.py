@@ -24,36 +24,63 @@ from hexrd import config
 
 # ***************************************************************************
 # CLASS DECLARATION
-class pca_matrices():
+class lodi_experiment():
     def __init__(self,
-                 pca_par_mat=np.array([]),
+                 img_stem='',
+                 output_dir='',
+                 first_img_dict={},
+                 box_mask_dict={},
                  box_points_dict={},
                  rings_mask_dict={},
-                 ims_list_dict={},
-                 det_mask_list_dict={},
-                 pca_matrix=np.array([]),
-                 det_keys=['det']):
+                 use_rings_mask_dict={},
+                 curr_img_path_dict={},
+                 curr_img_data_dict={},
+                 cfg=config):
 
         # initialize class variables
-        self._pca_par_mat = pca_par_mat
+        self._img_stem = img_stem
+        self._output_dir = output_dir
+        self._first_img_dict = first_img_dict
+        self._box_mask_dict = box_mask_dict
         self._box_points_dict = box_points_dict
         self._rings_mask_dict = rings_mask_dict
-        self._ims_list_dict = ims_list_dict
-        self._det_mask_list_dict = det_mask_list_dict
-        self._pca_matrix = pca_matrix
-        self._det_keys = list(det_keys)
+        self._use_rings_mask_dict = use_rings_mask_dict
+        self._curr_img_path_dict = curr_img_path_dict
+        self._curr_img_data_dict = curr_img_data_dict
+        self._cfg = cfg
         
-        if len(self._det_keys) != len(self._box_points_dict):
-            self.reset_box_points_dict()
-
-    # setters and getters
+    # SETTERS AND GETTERS *****************************************************
     @property
-    def pca_par_mat(self):
-        return self._pca_par_mat
-    @pca_par_mat.setter
-    def pca_par_mat(self, pca_par_mat):
-        self._pca_par_mat = pca_par_mat
-
+    def img_stem(self):
+        return self._img_stem
+    @img_stem.setter
+    def img_stem(self, img_stem):
+        self._img_stem = img_stem
+    
+    @property
+    def output_dir(self):
+        return self._output_dir
+    @output_dir.setter
+    def output_dir(self, output_dir):
+        if os.path.exists(output_dir):
+            self._output_dir = output_dir
+        else:
+            raise ValueError("Directory '%s' does not exists" % (output_dir))
+    
+    @property
+    def first_img_dict(self):
+        return self._first_img_dict
+    @first_img_dict.setter
+    def first_img_dict(self, first_img_dict):
+        self._first_img_dict = first_img_dict
+    
+    @property
+    def box_mask_dict(self):
+        return self._box_mask_dict
+    @box_mask_dict.setter
+    def box_mask_dict(self, box_mask_dict):
+        self._box_mask_dict = box_mask_dict
+        
     @property
     def box_points_dict(self):
         return self._box_points_dict
@@ -67,303 +94,165 @@ class pca_matrices():
     @rings_mask_dict.setter
     def rings_mask_dict(self, rings_mask_dict):
         self._rings_mask_dict = rings_mask_dict
-
-    @property
-    def ims_list_dict(self):
-        return self._ims_list_dict
-    @ims_list_dict.setter
-    def ims_list_dict(self, ims_list_dict):
-        self._ims_list_dict = ims_list_dict
     
     @property
-    def det_mask_list_dict(self):
-        return self._det_mask_list_dict
-    @det_mask_list_dict.setter
-    def det_mask_list_dict(self, det_mask_list_dict):
-        self._det_mask_list_dict = det_mask_list_dict
-
-    @property
-    def pca_matrix(self):
-        return self._pca_matrix
-    @pca_matrix.setter
-    def pca_matrix(self, pca_matrix):
-        self._pca_matrix = pca_matrix
+    def use_rings_mask_dict(self):
+        return self._use_rings_mask_dict
+    @use_rings_mask_dict.setter
+    def use_rings_mask_dict(self, use_rings_mask_dict):
+        self._use_rings_mask_dict = use_rings_mask_dict
     
     @property
-    def det_keys(self):
-        return self._det_keys
-    @det_keys.setter
-    def det_keys(self, det_keys):
-        self._det_keys = det_keys
+    def curr_img_path_dict(self):
+        return self._curr_img_path_dict
+    @curr_img_path_dict.setter
+    def curr_img_path_dict(self, curr_img_path_dict):
+        self._curr_img_path_dict = curr_img_path_dict
     
-    # other functions
-    def reset_box_points_dict(self):
-        self._box_points_dict = {}
-        for det_key in self.det_keys:
-            self._box_points_dict[det_key] = np.array([])
+    @property
+    def curr_img_data_dict(self):
+        return self._curr_img_data_dict
+    @curr_img_data_dict.setter
+    def curr_img_data_dict(self, curr_img_data_dict):
+        self._curr_img_data_dict = curr_img_data_dict
     
-    def make_det_image_mask(self, det_dict):
-        img_mask_dict = {}
+    @property
+    def cfg(self):
+        return self._cfg
+    @cfg.setter
+    def cfg(self, cfg):
+        self._cfg = cfg
+        self.init_dicts()
         
-        for det_key in self.det_keys:
-            img_size = [det_dict[det_key].rows, det_dict[det_key].cols]
-            if self._box_points_dict[det_key].size == 0 and len(self._rings_mask_dict) == 0:
-                img_mask = np.ones(img_size)
+    
+    # OTHER FUNCITONS *********************************************************
+    def det_keys(self):
+       return self.cfg.instrument.hedm.detectors.keys()
+    
+    def is_frame_cache(self):
+       return self.first_img_dict[self.det_keys[0]].endswith('.npz')
+    
+    
+    # DICT FUNCITONS **********************************************************
+    def init_dicts(self):
+        if self.first_img_dict.keys() != self.det_keys():
+            self.reset_first_img_dict()
+        if self.box_points_dict.keys() != self.det_keys():
+            self.reset_box_points_dict()
+        if self.use_rings_mask_dict.keys() != self.det_keys():
+            self.reset_use_rings_mask_dict()
+        if self.box_mask_dict.keys() != self.det_keys():
+            self.calc_box_mask_dict()
+        if self.rings_mask_dict.keys() != self.det_keys():
+            self.calc_rings_mask_dict() 
+        if self.curr_img_path_dict.keys() != self.det_keys():
+            self.reset_curr_img_path_dict()
+        if self.curr_img_data_dict.keys() != self.det_keys():
+            self.reset_curr_img_data_dict()
+        
+    def reset_first_img_dict(self):
+        self.first_img_dict = dict.fromkeys(self.det_keys())
+            
+    def reset_box_points_dict(self):
+        self.box_points_dict = {}
+        for det_key in self.det_keys():
+            self.box_points_dict[det_key] = np.array([])
+    
+    def reset_use_rings_mask_dict(self):
+        self.use_rings_mask_dict = {}
+        for det_key in self.det_keys():
+            self.use_rings_mask_dict[det_key] = 0
+    
+    def reset_curr_img_path_dict(self):
+        self.curr_img_path_dict = dict.fromkeys(self.det_keys())
+            
+    def reset_curr_img_data_dict(self):
+        self.curr_img_data_dict = dict.fromkeys(self.det_keys())
+    
+    def calc_box_mask_dict(self): 
+        print('Calculating Box Mask')
+        self.box_mask_dict = {}
+        for det_key in self.det_keys():
+            img_size = [self.cfg.instrument.hedm.detectors[det_key].rows, 
+                        self.cfg.instrument.hedm.detectors[det_key].cols]
+            if self._box_points_dict[det_key].size == 0 and not self.use_rings_mask_dict[det_key]:
+                # no bounding boxes and not using rings, then use whole image (not recommended due to slow computations)
+                img_box_mask = np.ones(img_size)
             else:
-                img_mask = np.zeros(img_size)
-                for i in range(self._box_points_dict[det_key].shape[0]):
-                    pts = self._box_points_dict[det_key][i, :, :]
+                img_box_mask = np.zeros(img_size)
+                for i in range(self.box_points_dict[det_key].shape[0]):
+                    pts = self.box_points_dict[det_key][i, :, :]
                     pts = np.floor(pts).astype(int)
                     # pts = [min_x, min_y; max_x, max_y]
                     # pts = [min_col, min_row; max_col, max_row]
-                    img_mask[pts[0, 1]:pts[1, 1], pts[0, 0]:pts[1, 0]] = 1
-            
-            img_mask_dict[det_key] = img_mask
-            if len(self._rings_mask_dict) > 0:
-                img_mask_dict[det_key] = img_mask_dict[det_key] + self._rings_mask_dict[det_key]
+                    img_box_mask[pts[0, 1]:pts[1, 1], pts[0, 0]:pts[1, 0]] = 1
                 
+            self.box_mask_dict[det_key] = img_box_mask.astype(bool)
+    
+    def calc_rings_mask_dict(self):
+        print('Calculating Rings Mask')
+        pd = self.cfg.material.plane_data
+        self.rings_mask_dict = {}
+        for det_key in self.det_keys():
+            panel = self.cfg.instrument.hedm.detectors[det_key]
+            panel_tth, panel_eta = panel.pixel_angles()
+            
+            panel_mask = np.zeros(panel_tth.shape)
+            for tth in pd.getTThRanges():
+                panel_mask += ((panel_tth > tth[0]) & (panel_tth < tth[1]))
+            
+            self.rings_mask_dict[det_key] = panel_mask
+    
+    def total_img_mask_dict(self):
+        img_mask_dict = {}
         
-        self.det_mask_list_dict = img_mask_dict
+        if self.rings_mask_dict.keys() != self.det_keys():
+            print(self.rings_mask_dict.keys())
+            print(self.det_keys())
+            self.calc_rings_mask_dict()
+            
+        self.calc_box_mask_dict()
+        
+        for det_key in self.det_keys():
+            if self.use_rings_mask_dict[det_key]:
+                img_mask_dict[det_key] = (self.box_mask_dict[det_key] + self.rings_mask_dict[det_key]).astype(bool)
+            else:
+                img_mask_dict[det_key] = (self.box_mask_dict[det_key]).astype(bool)
         return img_mask_dict
     
-    def load_ims_from_path(self, path, is_frame_cache=True):
-        if is_frame_cache:
-            # frame cahce
-            ims = imageseries.open(path, format='frame-cache')
-        else:
-            # raw
-            ims = imageseries.open(path, format='hdf5', path='/imageseries')
-        return ims
-         
-    def load_img_list(self, img_path_list_dict, img_mask_dict=None, ims_length=2, 
-                      is_frame_cache=True, frane_num_or_img_aggregation_options=None):
-        img_data_list_dict = {}
-        
-        for det_key in img_path_list_dict.keys():
-            # !!! TODO: return list of indices actually used
-            ims_list = []
-            
-            for img_path in img_path_list_dict[det_key]:
-                ims = self.load_ims_from_path(img_path, is_frame_cache=is_frame_cache)
-                
-                if len(ims) == ims_length:
-                    img_data = []
-                    for i in range(ims_length):
-                        if img_mask_dict is not None:
-                            img_data.append(ims[i][img_mask_dict[det_key].astype(bool)].flatten())
-                        else:
-                            img_data.append(ims[i].flatten())
-                        
-                    ims_list.append(np.hstack(img_data))
-            
-            img_data_list_dict[det_key] = np.array(ims_list)
-        
-        self._ims_list_dict = img_data_list_dict
-        return img_data_list_dict
-        
-    def assemble_pca_matrix(self):
-        for i, det_key in enumerate(self._det_keys):
-            
-            if i == 0:
-                self._pca_matrix = self._ims_list_dict[det_key]
-            else:
-                self._pca_matrix = np.hstack([self._pca_matrix, self._ims_list_dict[det_key]])
-        return self._pca_matrix
     
-    def reassemble_image_frame_from_roi(self, frame_num=0):
-        reassbmle_frame_dict = {}
-        for det_key in self.det_keys:
-            re_frame = np.zeros(self._det_mask_list_dict[det_key].shape)
-            s_ind = int(frame_num * np.sum(self._det_mask_list_dict[det_key]))
-            e_ind = int((frame_num + 1) * np.sum(self._det_mask_list_dict[det_key]))
-            re_frame[self._det_mask_list_dict[det_key].astype(bool)] = self._ims_list_dict[det_key][0, s_ind:e_ind]
-            reassbmle_frame_dict[det_key] = re_frame
-            
-        return reassbmle_frame_dict
-    
-    def plot_reassemble_image_frame_from_roi(self, frame_num=0):
-        re = self.reassemble_image_frame_from_roi(frame_num=frame_num)
-        
-        fig = plt.figure()
-        ax = fig.subplots(nrows=1, ncols=len(re))
-        
-        for i, det_key in enumerate(self.det_keys):
-            ax[i].imshow(re[det_key], vmax=100)
-            ax[i].imshow(self._det_mask_list_dict[det_key], cmap='Reds', alpha=0.1)
-            
-        plt.show()
-    
-    def load_pca_matrices_from_file(self, pca_mats_dir):
-        with open(pca_mats_dir, "rb") as input_file:
-             e = pickle.load(input_file)
-             self._pca_par_mat = e.pca_par_mat
-             self._box_points_dict = e.box_points_dict
-             self._image_files = e.image_files
-             self._pca_matrix = e.pca_matrix
-             self._det_keys = e.det_keys
-             
-    def save_pca_matrices_to_file(self, pca_mats_dir):
-        with open(pca_mats_dir, "wb") as output_file:
-            pickle.dump(self, output_file)
-    
-    # str and rep
-    def __repr__(self):
-        return "pca_matrices()\n" + self.__str__()
-
-    def __str__(self):
-        class_dict = {'pca_par_mat': self._pca_par_mat,
-                      'box_points_dict': self._box_points_dict}
-
-        return str(class_dict)
-
-
-class pca_paths():
-    def __init__(self,
-                 base_dir=os.getcwd(),
-                 img_dir=os.getcwd(),
-                 first_img_dict={'panel_id': 'image.npz'},
-                 is_frame_cache=True, 
-                 output_dir=os.getcwd(),
-                 output_fname='output.txt',
-                 config_fname=None
-                 ):
-
-        # /id1a3/ko-3371-a/c103-2-90-ff-1/3/ff/**image**.h5
-
-        # intialize class variables
-        self._base_dir = base_dir
-        self._img_dir = img_dir
-
-        self._first_img_dict = first_img_dict
-        self._is_frame_cache = is_frame_cache
-
-        self._output_dir = output_dir
-        self._output_fname = output_fname
-
-        self._config_fname = config_fname
-        self._config = config.open(self._config_fname)[0]
-
-    # setters and getters
-    @property
-    def base_dir(self):
-        return self._base_dir
-
-    @base_dir.setter
-    def base_dir(self, base_dir):
-        if os.path.exists(base_dir):
-            self._base_dir = base_dir
-        else:
-            raise ValueError(
-                "Base directory '%s' does not exists" % (base_dir))
-
-    @property
-    def img_dir(self):
-        return self._img_dir
-
-    @img_dir.setter
-    def img_dir(self, img_dir):
-        if os.path.exists(img_dir):
-            self._img_dir = img_dir
-        else:
-            raise ValueError("Img directory '%s' does not exists" %
-                             (img_dir))
-
-    @property
-    def first_img_dict(self):
-        return self._first_img_dict
-
-    @first_img_dict.setter
-    def first_img_dict(self, first_img_dict):
-        for img_key in first_img_dict.keys():
-            if not os.path.exists(first_img_dict[img_key]):
-                raise ValueError("Img directory '%s' does not exists" %(first_img_dict[img_key]))
-
-        self._first_img_dict = first_img_dict
-    
-    @property
-    def is_frame_cache(self):
-        return self._is_frame_cache
-
-    @is_frame_cache.setter
-    def is_frame_cache(self, is_frame_cache):
-        self._is_frame_cache = is_frame_cache
-    
-    @property
-    def output_dir(self):
-        return self._output_dir
-
-    @output_dir.setter
-    def output_dir(self, output_dir):
-        if os.path.exists(output_dir):
-            self._output_dir = output_dir
-        else:
-            raise ValueError(
-                "Output directory '%s' does not exists" % (output_dir))
-
-    @property
-    def output_fname(self):
-        return self._output_fname
-
-    @output_fname.setter
-    def output_fname(self, output_fname):
-        if output_fname.endswith('.txt'):
-            self._output_fname = output_fname
-        else:
-            self._output_fname = output_fname + '.txt'
-
-    @property
-    def config_fname(self):
-        return self._config_fname
-
-    @config_fname.setter
-    def config_fname(self, cfg_fname):
-        self._config_fname = cfg_fname
-
-    @property
-    def config(self):
-        return self._config
-
-    @config.setter
-    def config(self, cfg):
-        self._config = cfg
-
-    # other functions
+    # IMAGE FUNCITONS *********************************************************
     def open_first_image(self):
-        det_keys = self.config.instrument.hedm.detectors.keys()
         first_img_dict = {}
-        for det_key in det_keys:
+        for det_key in self.det_keys():
             root = tk.Tk()
             root.withdraw()
-            path = self.base_dir
+            path = self.img_stem.split('*')[0]
 
             file_dir = tk.filedialog.askopenfilename(initialdir=path,
                                                      defaultextension=".npz",
-                                                     filetypes=[("npz files", "*.npz"),
-                                                                ('H5 files',
-                                                                 '*.h5'),
+                                                     filetypes=[("npz files","*.npz"),
+                                                                ('H5 files','*.h5'),
                                                                 ("All Files", "*.*")],
-                                                     title="Select Image File for %s" % (det_key))
+                                                     title="Select First Image File for %s" % (det_key))
 
             if not file_dir:
                 quit()
             else:
                 try:
                     first_img_dict[det_key] = file_dir
-                    if file_dir.endswith('.npz'):
-                        self._is_frame_cache = True
                 except Exception as e:
                     print(e)
                     self.open_first_image()
         self._first_img_dict = first_img_dict
-
-    def get_all_image_paths_dict(self, image_path_stem):
+    
+    def get_all_image_paths_dict(self):
         # path = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/*%s*.npz' %('ff1')
         
         all_image_paths_dict = {}
         
-        det_keys = self.config.instrument.hedm.detectors.keys()
-        for det_key in det_keys:
-            det_image_path_stem = image_path_stem %(det_key)
+        for det_key in self.det_keys():
+            det_image_path_stem = self.img_stem %(det_key)
             sort_split = det_image_path_stem.split('*')
 
             det_files = glob.glob(det_image_path_stem)
@@ -377,21 +266,219 @@ class pca_paths():
             
             all_image_paths_dict[det_key] = np.array(det_files)[ind.tolist()].tolist()
         
-        return all_image_paths_dict
+        # TODO: Need a seperate function for UPDATING paths and data to just append
+        self.curr_img_path_dict = all_image_paths_dict
+    
+    def load_ims_from_path(self, path):
+        if self.is_frame_cache:
+            # frame cache
+            ims = imageseries.open(path, format='frame-cache')
+        else:
+            # raw
+            ims = imageseries.open(path, format='hdf5', path='/imageseries')
+        return ims
+    
+    def load_img_list(self, ims_length=2, frane_num_or_img_aggregation_options=None):
+        img_data_list_dict = {}
+        img_mask = self.total_img_mask_dict()
+        
+        for det_key in self.det_keys():
+            # !!! TODO: return list of indices actually used
+            ims_list = []
             
+            for img_path in self.curr_img_path_dict[det_key]:
+                ims = self.load_ims_from_path(img_path)
+                
+                if len(ims) == ims_length:
+                    img_data = []
+                    for i in range(ims_length):
+                        img_data.append(ims[i][img_mask[det_key]].flatten())
+                        
+                    ims_list.append(np.hstack(img_data))
             
-
-    # str and rep
+            img_data_list_dict[det_key] = np.array(ims_list)
+        
+        self.curr_img_data_dict = img_data_list_dict
+    
+    
+    # PCA FUNCITONS ***********************************************************
+    def assemble_data_matrix(self):
+        for i, det_key in enumerate(self.det_keys()):
+            if i == 0:
+                data_matrix = self.curr_img_data_dict[det_key]
+            else:
+                data_matrix = np.hstack([data_matrix, self.curr_img_data_dict[det_key]])
+        return data_matrix
+    
+    
+    # DEBUG FUNCITONS *********************************************************
+    def reassemble_image_frame_from_roi(self, frame_num=0):
+        reassbmle_frame_dict = {}
+        tot_mask = self.total_img_mask_dict()
+        for det_key in self.det_keys():
+            re_frame = np.zeros(tot_mask[det_key].shape)
+            s_ind = int(frame_num * np.sum(tot_mask[det_key]))
+            e_ind = int((frame_num + 1) * np.sum(tot_mask[det_key]))
+            re_frame[tot_mask[det_key].astype(bool)] = self.curr_img_data_dict[det_key][0, s_ind:e_ind]
+            reassbmle_frame_dict[det_key] = re_frame
+            
+        return reassbmle_frame_dict
+    
+    def plot_reassemble_image_frame_from_roi(self, frame_num=0):
+        re = self.reassemble_image_frame_from_roi(frame_num=frame_num)
+        tot_mask = self.total_img_mask_dict()
+        
+        fig = plt.figure()
+        ax = fig.subplots(nrows=1, ncols=len(re))
+        
+        for i, det_key in enumerate(self.det_keys()):
+            ax[i].imshow(re[det_key], vmax=100)
+            ax[i].imshow(tot_mask[det_key], cmap='Reds', alpha=0.1)
+            
+        plt.show()
+    
+    
+    # UTILITY / IO FUNCITONS **************************************************
     def __repr__(self):
-        return "pca_paths()\n" + self.__str__()
+        return "pca_matrices()\n" + self.__str__()
 
     def __str__(self):
-        class_dict = {'base_dir': self._base_dir,
-                      'img_dir': self._img_dir,
-                      'output_dir': self._output_dir,
-                      'output_fname': self._output_fname,
-                      'first_img_num': self._first_img_num,
-                      'config_fname': self._config_fname,
-                      'config': self._config}
+        class_dict = {'pca_par_mat': self._pca_par_mat,
+                      'box_points_dict': self._box_points_dict}
 
         return str(class_dict)
+    
+    def open_output_dir(self):
+        print("Opening output directory")
+        root = tk.Tk()
+        root.withdraw()
+        
+        output_dir = tk.filedialog.askdirectory(initialdir=__file__,
+                                                 title='Open Output Directory')
+        
+        if not output_dir:
+            pass
+        else:
+            try:
+                self.output_dir = output_dir  
+                return self.output_dir
+            except Exception as e:
+                print(e)
+                warnings.warn("Something went wrong when schoosing output directory")
+                pass
+    
+    def load_config_from_file(self, config_dir=None):
+        print("Load Config File")
+        if config_dir is None:
+            root = tk.Tk()
+            root.withdraw()
+            
+            config_dir = tk.filedialog.askopenfilename(initialdir=self.output_dir,
+                                                       title='Select Configuration File')
+        if not config_dir:
+            pass
+        else:
+            try:
+                self.cfg = config.open(config_dir)[0]
+                return self.cfg
+            except Exception as e:
+                print(e)
+                warnings.warn("Something went wrong when loading configuration file")
+                pass
+    
+    def save_mask_dict_to_file(self, mask_dir=None):
+        print("Save RealTimePCA Mask File")
+        if mask_dir is None:
+            root = tk.Tk()
+            root.withdraw()
+            
+            mask_dir = tk.filedialog.asksaveasfilename(confirmoverwrite=False,
+                                                       initialdir=self.output_dir,
+                                                       title='Save RealTimePCA Mask File')
+        
+        if not mask_dir:
+            pass
+        else:
+            try:
+                with open(mask_dir, "wb") as output_file:
+                    pickle.dump([self.box_points_dict, self.use_rings_mask_dict], output_file)    
+            except Exception as e:
+                print(e)
+                warnings.warn("Something went wrong when saving RealTimePCA Box ROI file")
+                pass
+        
+    def load_mask_dict_from_file(self, mask_dir=None):
+        print("Load RealTimePCA Mask File")
+        if mask_dir is None:
+            root = tk.Tk()
+            root.withdraw()
+            
+            mask_dir = tk.filedialog.askopenfilename(initialdir=self.output_dir,
+                                                           title='Select RealTimePCA Mask File')
+            
+        if not mask_dir:
+            pass
+        else:
+            try:
+                with open(mask_dir, "rb") as input_file:
+                     e = pickle.load(input_file)
+                     self.box_points_dict = e[0]
+                     self.use_rings_mask_dict = e[1]
+            except Exception as e:
+                print(e)
+                warnings.warn("Something went wrong when loading RealTimePCA Mask file")
+                pass
+             
+    def save_lodi_exp_to_file(self, lodi_exp_dir=None):
+        print("Save RealTimePCA LODI Experiment Object")
+        if lodi_exp_dir is None:
+            root = tk.Tk()
+            root.withdraw()
+            
+            lodi_exp_dir = tk.filedialog.asksaveasfilename(confirmoverwrite=False,
+                                                       initialdir=self.output_dir,
+                                                       title='Save RealTimePCA LODI Experiment')
+        
+        if not lodi_exp_dir:
+            pass
+        else:
+            try:
+                with open(lodi_exp_dir, "wb") as output_file:
+                    pickle.dump(self, output_file)
+            except Exception as e:
+                print(e)
+                warnings.warn("Something went wrong when saving RealTimePCA LODI Experiment")
+                pass
+    
+    def load_lodi_exp_from_file(self, lodi_exp_dir=None):
+        print("Load RealTimePCA LODI Experiment Object")
+        if lodi_exp_dir is None:
+            root = tk.Tk()
+            root.withdraw()
+            
+            lodi_exp_dir = tk.filedialog.askopenfilename(initialdir=self.output_dir,
+                                                           title='Select RealTimePCA LODI Experiment File')
+            
+        if not lodi_exp_dir:
+            pass
+        else:
+            try:
+                with open(lodi_exp_dir, "rb") as input_file:
+                     e = pickle.load(input_file)
+                     self.img_stem = e.img_stem
+                     self.output_dir = e.output_dir
+                     self.first_img_dict = e.first_img_dict
+                     self.box_mask_dict = e.box_mask_dict
+                     self.box_points_dict = e.box_points_dict
+                     self.rings_mask_dict = e.rings_mask_dict
+                     self.use_rings_mask_dict = e.use_rings_mask_dict
+                     self.curr_img_path_dict = e.curr_img_path_dict
+                     self.curr_img_data_dict = e.curr_img_data_dict
+                     self.cfg = e.cfg
+            except Exception as e:
+                print(e)
+                warnings.warn("Something went wrong when loading RealTimePCA Mask file")
+                pass
+        
+        
+
