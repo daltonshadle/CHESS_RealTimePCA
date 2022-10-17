@@ -207,8 +207,6 @@ class lodi_experiment():
         img_mask_dict = {}
         
         if self.rings_mask_dict.keys() != self.det_keys():
-            print(self.rings_mask_dict.keys())
-            print(self.det_keys())
             self.calc_rings_mask_dict()
             
         self.calc_box_mask_dict()
@@ -246,11 +244,18 @@ class lodi_experiment():
                     self.open_first_image()
         self._first_img_dict = first_img_dict
     
-    def get_all_image_paths_dict(self):
-        # path = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/*%s*.npz' %('ff1')
-        
+    def load_ims_from_path(self, path):
+        if self.is_frame_cache:
+            # frame cache
+            ims = imageseries.open(path, format='frame-cache')
+        else:
+            # raw
+            ims = imageseries.open(path, format='hdf5', path='/imageseries')
+        return ims
+    
+    def overwrite_img_list(self, ims_length=2, frane_num_or_img_aggregation_options=None):
+        # overwrite img path list
         all_image_paths_dict = {}
-        
         for det_key in self.det_keys():
             det_image_path_stem = self.img_stem %(det_key)
             sort_split = det_image_path_stem.split('*')
@@ -264,24 +269,19 @@ class lodi_experiment():
             
             ind = np.argsort(sort_det_files)
             
-            all_image_paths_dict[det_key] = np.array(det_files)[ind.tolist()].tolist()
-        
-        # TODO: Need a seperate function for UPDATING paths and data to just append
+            all_image_paths_dict[det_key] = np.array(det_files)[ind.tolist()]
+            
+            # start list at the first images
+            s_ind = np.where(all_image_paths_dict[det_key] == self.first_img_dict[det_key])[0].astype(int)
+            if len(s_ind) == 0:
+                raise ValueError("lodi_experiment.first_img_dict for %s is not in image paths list" %(det_key))
+            s_ind = s_ind[0]
+            all_image_paths_dict[det_key] = (all_image_paths_dict[det_key][s_ind:]).tolist()
         self.curr_img_path_dict = all_image_paths_dict
-    
-    def load_ims_from_path(self, path):
-        if self.is_frame_cache:
-            # frame cache
-            ims = imageseries.open(path, format='frame-cache')
-        else:
-            # raw
-            ims = imageseries.open(path, format='hdf5', path='/imageseries')
-        return ims
-    
-    def load_img_list(self, ims_length=2, frane_num_or_img_aggregation_options=None):
+        
+        # load images as overwrite
         img_data_list_dict = {}
         img_mask = self.total_img_mask_dict()
-        
         for det_key in self.det_keys():
             # !!! TODO: return list of indices actually used
             ims_list = []
@@ -300,6 +300,57 @@ class lodi_experiment():
         
         self.curr_img_data_dict = img_data_list_dict
     
+    def update_img_list(self, ims_length=2, frane_num_or_img_aggregation_options=None):
+        # get update paths list
+        all_image_paths_dict = {}
+        update_image_paths_dict = {}
+        for det_key in self.det_keys():
+            det_image_path_stem = self.img_stem %(det_key)
+            sort_split = det_image_path_stem.split('*')
+
+            det_files = glob.glob(det_image_path_stem)
+            sort_det_files = []
+            
+            # sorting on last * in image_path_stem as that probably has the scan number
+            for f in det_files:
+                sort_det_files.append(f.split(sort_split[-2])[1].split(sort_split[-1])[0])
+            
+            ind = np.argsort(sort_det_files)
+            
+            all_image_paths_dict[det_key] = np.array(det_files)[ind.tolist()]
+            
+            # start list at the first images
+            s_ind = np.where(all_image_paths_dict[det_key] == self.first_img_dict[det_key])[0].astype(int)
+            if len(s_ind) == 0:
+                raise ValueError("lodi_experiment.first_img_dict for %s is not in image paths list" %(det_key))
+            s_ind = s_ind[0]
+            all_image_paths_dict[det_key] = (all_image_paths_dict[det_key][s_ind:])
+            
+            # find differences
+            update_image_paths_dict[det_key] = np.setdiff1d(all_image_paths_dict[det_key], 
+                                                         self.curr_img_path_dict[det_key])
+            self.curr_img_path_dict[det_key] = all_image_paths_dict[det_key].tolist()
+        
+        # load updated images
+        img_mask = self.total_img_mask_dict()
+        for det_key in self.det_keys():
+            # !!! TODO: return list of indices actually used
+            ims_list = []
+            
+            for img_path in update_image_paths_dict[det_key]:
+                ims = self.load_ims_from_path(img_path)
+                
+                if len(ims) == ims_length:
+                    img_data = []
+                    for i in range(ims_length):
+                        img_data.append(ims[i][img_mask[det_key]].flatten())
+                        
+                    ims_list.append(np.hstack(img_data))
+            if len(ims_list) > 0:
+                if self.curr_img_data_dict[det_key] is None:
+                    self.curr_img_data_dict[det_key] = np.array(ims_list)
+                else:
+                    self.curr_img_data_dict[det_key] = np.vstack([self.curr_img_data_dict[det_key], np.array(ims_list)])
     
     # PCA FUNCITONS ***********************************************************
     def assemble_data_matrix(self):

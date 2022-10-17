@@ -15,8 +15,8 @@ Created on Tue Mar  8 14:57:43 2022
 # + read in config file
 # + work with multiple detectors (but only dexelas for now, frame-caches or raws)
 # + work with plane data for rings check box when selecting ROI (eta angles)
-# - some real-time data reading (updating path list)
-# - shore up objects by including everything needed for non-gui, update load and save methods
+# + some real-time data reading (updating path list)
+# + shore up objects by including everything needed for non-gui, update load and save methods
 # - outputting data
 # + better masking of images
 # - commenting!
@@ -41,58 +41,57 @@ from sklearn import decomposition
 from sklearn.preprocessing import Normalizer
 
 sys.path.append(os.path.split(__file__)[0])
-from RTPCA_Classes import pca_paths, pca_matrices, lodi_experiment
+from RTPCA_Classes import lodi_experiment
 from RTPCA_Widgets import pca_parameters_selector_widget
 
 #*****************************************************************************
 #%% USER INPUT
 
-# necessary input
+# NECESSARY INPUTS ***********************************************************
 use_gui = True
 
-sample_raw_stem = '/media/djs522/djs522_nov2020/chess_2020_11/ceo2/*/ff/%s*.h5' 
+# sample_raw_stem is used to find the detector images of a LODI measurement
+#  - use '*' in place of scan numbers
+#  - use '%s' in place of detector id in filename
+# CHESS EXPERIMENT
+beamtime_run = '2019-2'
+beamline_id = 'id3a'
+exp_name = 'miller-888-1'
+sample_name = 'ss718-1'
+sample_raw_stem = '/nfs/chess/raw/%s/%s/%s/%s' %(beamtime_run, beamline_id, exp_name, sample_name)  + '/*/ff/%s*.h5' 
+# LOCALLY STORED FRAME-CACHE
 sample_raw_stem = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/*%s*.npz'
 
 
+# OPTIONAL NON-GUI INPUTS ****************************************************
+# if not using the gui to declare variables, fill in the corresponding fields
 
-# optional input if not using gui
-
+# sample_aux_dir is used as the output directory for results
 sample_aux_dir = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/'
 
-sample_raw_dir = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/'
-first_img_dict={'ff1': os.path.join(sample_raw_dir, 'ss718-1_33_ff1_000027-cachefile.npz'),
-                'ff2': os.path.join(sample_raw_dir, 'ss718-1_33_ff1_000027-cachefile.npz')}
+# first_img_dict is a dictionary keyed by detector keys with paths to first 
+# detector images of LODI measurements
+first_img_dict={'ff1': '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/ss718-1_34_ff1_000028-cachefile.npz',
+                'ff2': '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/ss718-1_34_ff2_000028-cachefile.npz'}
 
-cfg_fname = os.path.join(sample_aux_dir, 'example_ff_config.yml') # leave as it's own object...?
+# cfg_name is used to define the location of a hexrd config file with roughly
+# calibrated detector (CeO2) and materials file
+cfg_fname = os.path.join(sample_aux_dir, 'example_ff_config.yml') 
 
-curr_img_path_dict_file = os.path.join(sample_aux_dir, 'ss718_pca_curr_img_path_dict.yml')
-
-mask_dict_file = os.path.join(sample_aux_dir, 'ss718_pca_mask_dict.yml')
+# mask_dict_file is the path to the detector image mask file for selecting
+# data for analysis from images
+mask_dict_file = os.path.join(sample_aux_dir, 'example_mask_file')
 
 #*****************************************************************************
 #%% INITIALIZE OBJECTS
 
 pca_exp = lodi_experiment(img_stem=sample_raw_stem)
 
-'''
-def __init__(self,
-             img_stem='',
-             output_dir='',
-             first_img_dict={},
-             box_mask_dict={},
-             box_points_dict={},
-             ring_mask_dict={},
-             use_ring_mask_dict={},
-             curr_img_path_dict={},
-             curr_img_data_dict={},
-             cfg=config)
-'''
-
 #*****************************************************************************
 #%% SELECT RAW_DIR, AUX_DIR, CFG WITH GUI
 if use_gui:
-    sample_aux_dir = pca_exp.open_output_dir()
-    cfg = pca_exp.load_config_from_file()
+    pca_exp.open_output_dir()
+    pca_exp.load_config_from_file()
 else:
     pca_exp.output_dir = sample_aux_dir
     pca_exp.cfg = config.open(cfg_fname)[0]
@@ -102,8 +101,8 @@ else:
 if use_gui:
     pca_exp.open_first_image()
 else:
-    if len(first_img_dict) > 0:
-        pca_exp.first_image_dict = first_img_dict
+    if first_img_dict.keys() == pca_exp.det_keys():
+        pca_exp.first_img_dict = first_img_dict
     else:
         raise ValueError("first_img_dict is empty. Use GUI to select first image(s) or fix first_img_dict.")
 
@@ -119,21 +118,12 @@ else:
         raise ValueError("ROI file could not be loaded. Use GUI to select ROI or fix ROI file path.")
 
 #*****************************************************************************
-#%% GET CURRENT IMAGE PATH LIST
-pca_exp.get_all_image_paths_dict()
-
-#*****************************************************************************
-#%% READ IN THE CURRENT IMAGES FROM PATH LIST
-pca_exp.load_img_list(ims_length=2, frane_num_or_img_aggregation_options=None)
+#%% READ IN CURRENT IMAGES
+pca_exp.update_img_list(ims_length=2, frane_num_or_img_aggregation_options=None)
 
 #*****************************************************************************
 #%% ASSEMBLE THE PCA MATRIX
 pca_matrix = pca_exp.assemble_data_matrix()
-
-#*****************************************************************************
-#%% CHECK ROI DATA
-if use_gui:
-    pca_exp.plot_reassemble_image_frame_from_roi(frame_num=0)
 
 #*****************************************************************************
 #%% FIT AND TRANSFORM PCA MATRIX
@@ -163,6 +153,11 @@ plt.xlabel('Principal Component 1')
 plt.ylabel('Principal Component 2')
 
 plt.show()
+
+#*****************************************************************************
+#%% CHECK ROI DATA
+if use_gui:
+    pca_exp.plot_reassemble_image_frame_from_roi(frame_num=0)
 
 #*****************************************************************************
 #%% SAVE LODI EXPERIMENT
