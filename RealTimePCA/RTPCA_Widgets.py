@@ -204,7 +204,7 @@ class pca_parameters_selector_widget_old():
         return [self.pca_paths, self.pca_mats]
 
 class pca_parameters_selector_widget():
-    def __init__(self, lodi_exp):
+    def __init__(self, lodi_exp, vmax=1000, img_process_dict=None):
         
         # set up objects
         self.lodi_exp = lodi_exp
@@ -213,9 +213,10 @@ class pca_parameters_selector_widget():
         # set up image series dict
         self.first_ims_dict = {}
         for det_key in self.lodi_exp.det_keys():
-            self.first_ims_dict[det_key] = self.lodi_exp.load_ims_from_path(self.lodi_exp.first_img_dict[det_key])
+            self.first_ims_dict[det_key] = self.lodi_exp.load_ims_from_path(self.lodi_exp.first_img_dict[det_key], 
+                                                                            img_process_list=img_process_dict[det_key])
         
-        # set up references
+        # set up references]]
         win_w = 600*self.num_det + 200
         win_h = 800
         fig_w = 600*self.num_det
@@ -244,6 +245,9 @@ class pca_parameters_selector_widget():
         
         # set up ring mask variables
         self.use_rings = tk.IntVar()
+        
+        # set up plotting variables
+        self.vmax = vmax
         
         # start plotting
         self.update_plot()
@@ -313,10 +317,16 @@ class pca_parameters_selector_widget():
         self.use_rings_check = tk.Checkbutton(self.window, text='Use Rings', variable=self.use_rings, 
                                               onvalue=1, offvalue=0, command=use_rings_on_click)
         self.use_rings_check.place(x=button_x, y=350, height=button_h, width=button_w)
-
         
         # Add a button for quitting
         def on_closing(root):
+            tot_mask_dict = self.lodi_exp.total_img_mask_dict()
+            for det_key in self.lodi_exp.det_keys():
+                u_pix = np.sum(tot_mask_dict[det_key])
+                t_pix = tot_mask_dict[det_key].size
+                perc = float(u_pix) / float(t_pix)
+                print("%s: using %i pixels / %i total pixels (%0.2f)" %(det_key, u_pix, t_pix, perc))
+            
             root.destroy()
             root.quit()            
         self.quit_button = tk.Button(self.window, text="Continue", command=lambda root=self.window:on_closing(root))
@@ -330,7 +340,8 @@ class pca_parameters_selector_widget():
         tot_mask = self.lodi_exp.total_img_mask_dict()
         for i, det_key in enumerate(self.first_ims_dict.keys()):
             self.first_img_ax[i].clear()
-            self.first_img_ax[i].imshow(self.first_ims_dict[det_key][0], vmax=100)
+            self.first_img_ax[i].title.set_text(det_key)
+            self.first_img_ax[i].imshow(self.first_ims_dict[det_key][0], vmax=self.vmax)
             self.first_img_ax[i].imshow(tot_mask[det_key], vmax=1, cmap='Reds', alpha=0.1)
             
         self.canvas.draw()
