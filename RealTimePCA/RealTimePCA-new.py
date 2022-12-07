@@ -56,7 +56,7 @@ from RTPCA_Widgets import pca_parameters_selector_widget
 beamtime_cycle = '2022-3'
 beamline_id = 'id1a3'
 exp_name = 'miller-3528-a'
-sample_name = 'ff-c103-90-s1-2'
+sample_name = 'ff-c103-90-s2-2'
 sample_raw_stem = '/nfs/chess/raw/%s/%s/%s/%s' %(beamtime_cycle, beamline_id, exp_name, sample_name)  + '/%i/ff/%s*.h5' 
 sample_raw_stem = '/nfs/chess/raw/%s/%s/%s/%s' %(beamtime_cycle, beamline_id, exp_name, sample_name)  + '/%i/ff/%s_%06i.h5' 
 
@@ -80,24 +80,29 @@ pair_lodi_with_dic = True
 dic_output_json_fname = os.path.join(sample_aux_dir, 'dic_output.json') #'/nfs/chess/user/djs522/rtpca_dec_2022/CHESS_RealTimePCA/wiley_dec_2022/'
 
 # dic_output_txt_fname is the full path to the dic_output_file from RealTimeDIC
-dic_output_txt_fname = os.path.join(sample_aux_dir, 'ff-c103-90-s1-2_dic_output.txt')
+#dic_output_txt_fname = os.path.join(sample_aux_dir, 'ff-c103-90-s1-2_dic_output.txt')
+dic_output_txt_fname = os.path.join(sample_aux_dir, 'c103-90-s2-2_dic.txt')
 
 # dic_output_cols is a list of column indices used to index dic_output file
 dic_output_cols = [1, 3, 6]
 
 # lodi_json_fname is the full path to the json file indexing the lodi_par_fname
-lodi_json_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/id1a3-rams4_lodi-dexela-ff-c103-90-s1-2.json' #'/nfs/chess/user/djs522/rtpca_dec_2022/CHESS_RealTimePCA/wiley_dec_2022/'
+#lodi_json_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/id1a3-rams4_lodi-dexela-ff-c103-90-s1-2.json'
+lodi_json_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s2-2/id1a3-rams4_lodi-dexela-ff-c103-90-s2-2.json' 
 
 # lodi_par_fname is the full path to the par file for this LODI experiment
-lodi_par_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/id1a3-rams4_lodi-dexela-ff-c103-90-s1-2.par' #'/nfs/chess/user/djs522/rtpca_dec_2022/CHESS_RealTimePCA/wiley_dec_2022/'
+#lodi_par_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/id1a3-rams4_lodi-dexela-ff-c103-90-s1-2.par' 
+lodi_par_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s2-2/id1a3-rams4_lodi-dexela-ff-c103-90-s2-2.par' 
 
 # lodi_par_cols is a list of column indices used to index lodi par file
 lodi_par_cols = [3, 22, 12, 13, 4, 5]
 
 # first_img_dict is a dictionary keyed by detector keys with paths to first 
 # detector images of LODI measurements
-first_img_dict = {'ff1': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/1/ff/ff1_000204.h5',
-                  'ff2': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/1/ff/ff2_000204.h5'}
+#first_img_dict = {'ff1': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/1/ff/ff1_000204.h5',
+#                  'ff2': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/1/ff/ff2_000204.h5'}
+first_img_dict = {'ff1': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s2-2/6/ff/ff1_000308.h5',
+                  'ff2': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s2-2/6/ff/ff2_000308.h5'}
 
 # img_process_dict is a dictionary for any image processing that needs to be donw
 # i.e. fliiping dexela raw images hortizontal or vertical
@@ -115,7 +120,9 @@ mask_dict_file = None #os.path.join(sample_aux_dir, 'example_mask_file')
 #*****************************************************************************
 #%% INITIALIZE OBJECTS AND SET UP RAW STEM
 
-pca_exp = lodi_experiment(img_stem=sample_raw_stem, ring_eta_dict=img_ring_eta_dict)
+pca_exp = lodi_experiment(img_stem=sample_raw_stem, 
+                          ring_eta_dict=img_ring_eta_dict, 
+                          pair_lodi_with_dic=pair_lodi_with_dic)
 
 #*****************************************************************************
 #%% SELECT OUTPUT / AUX DIR
@@ -193,8 +200,12 @@ for i in range(num_cmpts):
     #plt.xlim(-23.72,  -23.65)
     plt.suptitle('PC %i' %(i+1))
 
-
 plt.show()
+
+#*****************************************************************************
+#%% UPDATE IMAGE LIST
+
+pca_exp.update_img_list_new(img_process_dict=img_process_dict, frane_num_or_img_aggregation_options=[0])
 
 #*****************************************************************************
 #%% CHECK ROI DATA

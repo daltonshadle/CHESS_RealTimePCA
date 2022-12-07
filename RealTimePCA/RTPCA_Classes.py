@@ -518,6 +518,7 @@ class lodi_experiment():
         # int = frame_num
         # max = max over all frames to one image
         # mean = mean over all frames to one image
+        # sum = sum over all frames to one image
         
         self.curr_loadstep_nums = []
         
@@ -577,6 +578,12 @@ class lodi_experiment():
                         img_data.append(ims[i][img_mask[det_key]].flatten())
                     img_data = np.vstack(img_data)
                     img_data = np.mean(img_data, axis=0).flatten()
+                elif (isinstance(frane_num_or_img_aggregation_options, str) and
+                      frane_num_or_img_aggregation_options.lower() == 'sum'):
+                    for i in range(len(ims)):
+                        img_data.append(ims[i][img_mask[det_key]].flatten())
+                    img_data = np.vstack(img_data)
+                    img_data = np.sum(img_data, axis=0).flatten()
                 else:
                     print('frane_num_or_img_aggregation_options %s is not supported' %(frane_num_or_img_aggregation_options))
                 
@@ -595,24 +602,107 @@ class lodi_experiment():
             uni_curr_dic_ls_nums, uni_curr_dic_ls_nums_ind = np.unique(curr_dic_loadstep_nums, return_index=True) 
             curr_dic_output_ind = np.where(np.in1d(uni_curr_dic_ls_nums, self.curr_loadstep_nums))[0]
             curr_dic_output_ind = uni_curr_dic_ls_nums_ind[curr_dic_output_ind]
-            print(uni_curr_dic_ls_nums.shape, curr_dic_output_ind.shape)
             self.dic_output_data = curr_dic_output_data[curr_dic_output_ind, :]
         
     
-    def update_img_list_new(self, frane_num_or_img_aggregation_options=None):
-        # get update paths list
-        all_image_paths_dict = {}
-        update_image_paths_dict = {}
+    def update_img_list_new(self, img_process_dict=None, frane_num_or_img_aggregation_options=None):
+        # frane_num_or_img_aggregation_options
+        # None = all images
+        # int = frame_num
+        # max = max over all frames to one image
+        # mean = mean over all frames to one image
+        # sum = sum over all frames to one image
         
-        # open lodi_par_file
-        # open dic_output_file
-        # compare to current data to see if different sizes, if so update
-        # find difference in load step numbers to find to find new lodi files
-        # load new images with masking and add to image data (use aggre options to choose frames, aggre, ext)
-        # good good
+        #self.curr_loadstep_nums = []
         
-        #self.dic_output_prompt_dict = {'Stress (Loading Dir)':0, 'Strain (Loading Dir)':1, 'Load Step Number':2}
-        #self.lodi_par_prompt_dict = {'Scan Number':0, 'Load Step Number':1, 'Final Load Newtons':2, 'Final Screw':3}
+        # TODO: need to consider if not pairing with DIC
+        curr_lodi_par_data = self.process_lodi_par_file(self.lodi_par_dir, self.lodi_par_cols)
+        curr_lodi_loadstep_nums = curr_lodi_par_data[:, self.lodi_par_prompt_dict['Load Step Number']]
+        update_loadstep_nums = curr_lodi_loadstep_nums
+        
+        if self.pair_lodi_with_dic:
+            curr_dic_output_data = self.process_dic_output_file(self.dic_output_txt_dir, self.dic_output_cols)
+            curr_dic_loadstep_nums = curr_dic_output_data[:, self.dic_output_prompt_dict['Load Step Number']]
+            update_loadstep_nums = np.intersect1d(update_loadstep_nums, curr_dic_loadstep_nums)
+        
+        new_loadstep_nums = np.setdiff1d(update_loadstep_nums, self.curr_loadstep_nums)
+        
+        # load images
+        img_mask = self.total_img_mask_dict()
+        for det_key in self.det_keys():
+            # !!! TODO: return list of indices actually used
+            new_ims_list = []
+            
+            for new_ls in new_loadstep_nums:
+                print("Loading det %s loadstep %i" %(det_key, new_ls))
+                # sample_raw_stem = '/nfs/chess/raw/%s/%s/%s/%s' %(beamtime_cycle, beamline_id, exp_name, sample_name)  + '/%i/ff/%s_%06i.h5' 
+                curr_lodi_ind = np.where(curr_lodi_par_data[:, self.lodi_par_prompt_dict['Load Step Number']] == new_ls)[0][0]
+                curr_scan = curr_lodi_par_data[curr_lodi_ind, self.lodi_par_prompt_dict['Scan Number']]
+                curr_ff_img_num = curr_lodi_par_data[curr_lodi_ind, self.lodi_par_prompt_dict[det_key + ' Image Number']]
+                
+                img_path = self.raw_img_stem %(curr_scan, det_key, curr_ff_img_num)
+                ims = self.load_ims_from_path(img_path, img_process_list=img_process_dict[det_key])
+                
+                # frane_num_or_img_aggregation_options
+                # None = all images
+                # list = frame_nums
+                # 'max' = max over all frames to one image
+                # 'mean' = mean over all frames to one image
+                img_data = []
+                if frane_num_or_img_aggregation_options is None:
+                    for i in range(len(ims)):
+                        img_data.append(ims[i][img_mask[det_key]].flatten())
+                    img_data = np.hstack(img_data).flatten()
+                elif (isinstance(frane_num_or_img_aggregation_options, list) 
+                      or isinstance(frane_num_or_img_aggregation_options, np.array)):
+                    frame_num_arr = np.array(frane_num_or_img_aggregation_options).astype(int)
+                    frame_num_arr = frame_num_arr.flatten()
+                    for fn in frame_num_arr:
+                        img_data.append(ims[fn][img_mask[det_key]].flatten())
+                    img_data = np.hstack(img_data).flatten()
+                elif (isinstance(frane_num_or_img_aggregation_options, str) and
+                      frane_num_or_img_aggregation_options.lower() == 'max'):
+                    for i in range(len(ims)):
+                        img_data.append(ims[i][img_mask[det_key]].flatten())
+                    img_data = np.vstack(img_data)
+                    img_data = np.max(img_data, axis=0).flatten()
+                elif (isinstance(frane_num_or_img_aggregation_options, str) and
+                      frane_num_or_img_aggregation_options.lower() == 'mean'):
+                    for i in range(len(ims)):
+                        img_data.append(ims[i][img_mask[det_key]].flatten())
+                    img_data = np.vstack(img_data)
+                    img_data = np.mean(img_data, axis=0).flatten()
+                elif (isinstance(frane_num_or_img_aggregation_options, str) and
+                      frane_num_or_img_aggregation_options.lower() == 'sum'):
+                    for i in range(len(ims)):
+                        img_data.append(ims[i][img_mask[det_key]].flatten())
+                    img_data = np.vstack(img_data)
+                    img_data = np.sum(img_data, axis=0).flatten()
+                else:
+                    print('frane_num_or_img_aggregation_options %s is not supported' %(frane_num_or_img_aggregation_options))
+                
+                new_ims_list.append(img_data)
+            
+            new_ims_list = np.atleast_2d(np.array(new_ims_list))
+            if new_ims_list.shape[1] == self.curr_img_data_dict[det_key].shape[1]:
+                self.curr_img_data_dict[det_key] = np.vstack([self.curr_img_data_dict[det_key], new_ims_list])
+        
+        self.curr_loadstep_nums = update_loadstep_nums
+        
+        # update lodi_par_data, have to deal with multiple lodi at load step
+        uni_curr_lodi_ls_nums, uni_curr_lodi_ls_nums_ind = np.unique(curr_lodi_loadstep_nums, return_index=True) 
+        curr_lodi_par_ind = np.where(np.in1d(uni_curr_lodi_ls_nums, self.curr_loadstep_nums))[0]
+        curr_lodi_par_ind = uni_curr_lodi_ls_nums_ind[curr_lodi_par_ind]
+        self.lodi_par_data = curr_lodi_par_data[curr_lodi_par_ind, :]
+        
+        if self.pair_lodi_with_dic:
+            # update dic_output_data, have to deal with multiple dic images at load step
+            uni_curr_dic_ls_nums, uni_curr_dic_ls_nums_ind = np.unique(curr_dic_loadstep_nums, return_index=True) 
+            curr_dic_output_ind = np.where(np.in1d(uni_curr_dic_ls_nums, self.curr_loadstep_nums))[0]
+            curr_dic_output_ind = uni_curr_dic_ls_nums_ind[curr_dic_output_ind]
+            self.dic_output_data = curr_dic_output_data[curr_dic_output_ind, :]
+        
+        
     
     
     
@@ -755,6 +845,7 @@ class lodi_experiment():
             quit()
         else:
             try:
+            #if True:
                 self.dic_output_json_dir = dic_output_json_dir
                 json_file = open(dic_output_json_dir)
                 json_dict = json.load(json_file)
@@ -776,11 +867,12 @@ class lodi_experiment():
                 self.dic_output_txt_dir = dic_output_txt_dir
                 self.dic_output_data = self.process_dic_output_file(self.dic_output_txt_dir, self.dic_output_cols)
             except Exception as e:
+            #else:
                 print(e)
                 self.open_dic_output_file(dic_output_json_dir=dic_output_json_dir, dic_output_txt_dir=dic_output_txt_dir)
     
     def process_dic_output_file(self, dic_output_txt_dir, dic_output_cols):
-        df = pd.read_csv(dic_output_txt_dir, sep="\t", header=None)
+        df = pd.read_csv(dic_output_txt_dir, sep="\s+|\t", header=None, engine='python')
         return np.array(df)[:, dic_output_cols]    
     
     def open_lodi_par_file(self, lodi_json_dir=None, lodi_par_dir=None, lodi_par_cols=None):
