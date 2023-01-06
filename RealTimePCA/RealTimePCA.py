@@ -54,20 +54,20 @@ use_gui = True
 #  - use '*' in place of scan numbers
 #  - use '%s' in place of detector id in filename
 # CHESS EXPERIMENT
-beamtime_run = '2019-2'
-beamline_id = 'id3a'
-exp_name = 'miller-888-1'
-sample_name = 'ss718-1'
+beamtime_run = '2022-3'
+beamline_id = 'id1a3'
+exp_name = 'miller-3528-a'
+sample_name = 'ff-c103-90-s1-2'
 sample_raw_stem = '/nfs/chess/raw/%s/%s/%s/%s' %(beamtime_run, beamline_id, exp_name, sample_name)  + '/*/ff/%s*.h5' 
 # LOCALLY STORED FRAME-CACHE
-sample_raw_stem = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/*%s*.npz'
+#sample_raw_stem = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/*%s*.npz'
 
 
 # OPTIONAL NON-GUI INPUTS ****************************************************
 # if not using the gui to declare variables, fill in the corresponding fields
 
 # sample_aux_dir is used as the output directory for results
-sample_aux_dir = '/home/djs522/additional_sw/RealTimePCA/CHESS_RealTimePCA/example/'
+sample_aux_dir = '/nfs/chess/user/djs522/rtpca_dec_2022/CHESS_RealTimePCA/wiley_dec_2022/'
 
 # first_img_dict is a dictionary keyed by detector keys with paths to first 
 # detector images of LODI measurements

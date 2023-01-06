@@ -512,7 +512,12 @@ class lodi_experiment():
     
     
     
+<<<<<<< HEAD
+    def overwrite_img_list_new(self, img_process_dict=None, frane_num_or_img_aggregation_options=None, 
+                               start_loadstep_num=0, ignore_loadstep_list=[]):
+=======
     def overwrite_img_list_new(self, img_process_dict=None, frane_num_or_img_aggregation_options=None):
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
         # frane_num_or_img_aggregation_options
         # None = all images
         # int = frame_num
@@ -533,6 +538,12 @@ class lodi_experiment():
             self.curr_loadstep_nums = np.intersect1d(self.curr_loadstep_nums, curr_dic_loadstep_nums)
             print(curr_lodi_loadstep_nums.shape, curr_dic_loadstep_nums.shape, self.curr_loadstep_nums.shape)
         
+<<<<<<< HEAD
+        self.curr_loadstep_nums = self.curr_loadstep_nums[self.curr_loadstep_nums >= start_loadstep_num]
+        self.curr_loadstep_nums = np.setdiff1d(self.curr_loadstep_nums, ignore_loadstep_list)
+        
+=======
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
         # load images
         img_mask = self.total_img_mask_dict()
         for det_key in self.det_keys():
@@ -560,7 +571,11 @@ class lodi_experiment():
                         img_data.append(ims[i][img_mask[det_key]].flatten())
                     img_data = np.hstack(img_data).flatten()
                 elif (isinstance(frane_num_or_img_aggregation_options, list) 
+<<<<<<< HEAD
+                      or isinstance(frane_num_or_img_aggregation_options, np.ndarray)):
+=======
                       or isinstance(frane_num_or_img_aggregation_options, np.array)):
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
                     frame_num_arr = np.array(frane_num_or_img_aggregation_options).astype(int)
                     frame_num_arr = frame_num_arr.flatten()
                     for fn in frame_num_arr:
@@ -605,7 +620,12 @@ class lodi_experiment():
             self.dic_output_data = curr_dic_output_data[curr_dic_output_ind, :]
         
     
+<<<<<<< HEAD
+    def update_img_list_new(self, img_process_dict=None, frane_num_or_img_aggregation_options=None,
+                            start_loadstep_num=0, ignore_loadstep_list=[]):
+=======
     def update_img_list_new(self, img_process_dict=None, frane_num_or_img_aggregation_options=None):
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
         # frane_num_or_img_aggregation_options
         # None = all images
         # int = frame_num
@@ -625,6 +645,11 @@ class lodi_experiment():
             curr_dic_loadstep_nums = curr_dic_output_data[:, self.dic_output_prompt_dict['Load Step Number']]
             update_loadstep_nums = np.intersect1d(update_loadstep_nums, curr_dic_loadstep_nums)
         
+<<<<<<< HEAD
+        update_loadstep_nums = update_loadstep_nums[update_loadstep_nums >= start_loadstep_num]
+        update_loadstep_nums = np.setdiff1d(update_loadstep_nums, ignore_loadstep_list)
+=======
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
         new_loadstep_nums = np.setdiff1d(update_loadstep_nums, self.curr_loadstep_nums)
         
         # load images
@@ -654,7 +679,11 @@ class lodi_experiment():
                         img_data.append(ims[i][img_mask[det_key]].flatten())
                     img_data = np.hstack(img_data).flatten()
                 elif (isinstance(frane_num_or_img_aggregation_options, list) 
+<<<<<<< HEAD
+                      or isinstance(frane_num_or_img_aggregation_options, np.ndarray)):
+=======
                       or isinstance(frane_num_or_img_aggregation_options, np.array)):
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
                     frame_num_arr = np.array(frane_num_or_img_aggregation_options).astype(int)
                     frame_num_arr = frame_num_arr.flatten()
                     for fn in frame_num_arr:

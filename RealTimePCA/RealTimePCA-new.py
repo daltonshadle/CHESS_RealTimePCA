@@ -55,8 +55,13 @@ from RTPCA_Widgets import pca_parameters_selector_widget
 # CHESS EXPERIMENT
 beamtime_cycle = '2022-3'
 beamline_id = 'id1a3'
+<<<<<<< HEAD
+exp_name = 'nygren-3527-a'
+sample_name = 'mg4al_test-1'
+=======
 exp_name = 'miller-3528-a'
 sample_name = 'ff-c103-90-s2-2'
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
 sample_raw_stem = '/nfs/chess/raw/%s/%s/%s/%s' %(beamtime_cycle, beamline_id, exp_name, sample_name)  + '/%i/ff/%s*.h5' 
 sample_raw_stem = '/nfs/chess/raw/%s/%s/%s/%s' %(beamtime_cycle, beamline_id, exp_name, sample_name)  + '/%i/ff/%s_%06i.h5' 
 
@@ -65,11 +70,19 @@ sample_raw_stem = '/nfs/chess/raw/%s/%s/%s/%s' %(beamtime_cycle, beamline_id, ex
 # If set to None, a GUI window will prompt users to point to directory or file
 
 # sample_aux_dir is used as the output directory for results
+<<<<<<< HEAD
+sample_aux_dir = '/nfs/chess/user/djs522/rtpca_dec_2022/CHESS_RealTimePCA/nygren-3527-a/'
+
+# cfg_name is used to define the location of a hexrd config file with roughly
+# calibrated detector (CeO2) and materials file
+cfg_fname = os.path.join(sample_aux_dir, 'mg4al_LODI_config.yml')
+=======
 sample_aux_dir = '/nfs/chess/user/djs522/rtpca_dec_2022/CHESS_RealTimePCA/wiley_dec_2022/'
 
 # cfg_name is used to define the location of a hexrd config file with roughly
 # calibrated detector (CeO2) and materials file
 cfg_fname = os.path.join(sample_aux_dir, 'c103_LODI_ff_12_03_2022_config.yml')
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
 
 # pair_lodi_with_dic is a flag used to define whether RealTimePCA should use RealTimeDIC
 # stress and strain information to help visualize PCA data; True = Piared, False = Not Paired
@@ -81,13 +94,28 @@ dic_output_json_fname = os.path.join(sample_aux_dir, 'dic_output.json') #'/nfs/c
 
 # dic_output_txt_fname is the full path to the dic_output_file from RealTimeDIC
 #dic_output_txt_fname = os.path.join(sample_aux_dir, 'ff-c103-90-s1-2_dic_output.txt')
+<<<<<<< HEAD
+dic_output_txt_fname = '/nfs/chess/aux/cycles/2022-3/id1a3/nygren-3527-a/mg4al_test-1/mg4al_test-1_dic.txt' #os.path.join(sample_aux_dir, 'c103-90-s2-2_dic.txt')
+=======
 dic_output_txt_fname = os.path.join(sample_aux_dir, 'c103-90-s2-2_dic.txt')
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
 
 # dic_output_cols is a list of column indices used to index dic_output file
 dic_output_cols = [1, 3, 6]
 
 # lodi_json_fname is the full path to the json file indexing the lodi_par_fname
 #lodi_json_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/id1a3-rams4_lodi-dexela-ff-c103-90-s1-2.json'
+<<<<<<< HEAD
+lodi_json_fname = '/nfs/chess/raw/2022-3/id1a3/nygren-3527-a/%s/id1a3-rams4_lodi-dexela-%s.json'  %(sample_name, sample_name)
+
+# lodi_par_fname is the full path to the par file for this LODI experiment
+#lodi_par_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/id1a3-rams4_lodi-dexela-ff-c103-90-s1-2.par' 
+lodi_par_fname = '/nfs/chess/raw/2022-3/id1a3/nygren-3527-a/%s/id1a3-rams4_lodi-dexela-%s.par'  %(sample_name, sample_name)
+
+# lodi_par_cols is a list of column indices used to index lodi par file
+lodi_par_cols = [3, 22, 12, 13, 4, 5]
+lodi_par_cols = [3, 22, 12, 13, 5]
+=======
 lodi_json_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s2-2/id1a3-rams4_lodi-dexela-ff-c103-90-s2-2.json' 
 
 # lodi_par_fname is the full path to the par file for this LODI experiment
@@ -96,22 +124,37 @@ lodi_par_fname = '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s2-2/id1a
 
 # lodi_par_cols is a list of column indices used to index lodi par file
 lodi_par_cols = [3, 22, 12, 13, 4, 5]
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
 
 # first_img_dict is a dictionary keyed by detector keys with paths to first 
 # detector images of LODI measurements
 #first_img_dict = {'ff1': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/1/ff/ff1_000204.h5',
 #                  'ff2': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s1-2/1/ff/ff2_000204.h5'}
+<<<<<<< HEAD
+first_img_dict = {'ff1': '/nfs/chess/raw/2022-3/id1a3/nygren-3527-a/mg4al_test-1/12/ff/ff1_000740.h5',
+                  'ff2': '/nfs/chess/raw/2022-3/id1a3/nygren-3527-a/mg4al_test-1/12/ff/ff2_000740.h5'}
+first_img_dict = {'ff2': '/nfs/chess/raw/2022-3/id1a3/nygren-3527-a/mg4al_test-1/12/ff/ff2_000740.h5'}
+=======
 first_img_dict = {'ff1': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s2-2/6/ff/ff1_000308.h5',
                   'ff2': '/nfs/chess/raw/2022-3/id1a3/miller-3528-a/ff-c103-90-s2-2/6/ff/ff2_000308.h5'}
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
 
 # img_process_dict is a dictionary for any image processing that needs to be donw
 # i.e. fliiping dexela raw images hortizontal or vertical
 img_process_dict = {'ff1': [('flip', 'v')],
                     'ff2': [('flip', 'h')]}
+<<<<<<< HEAD
+img_process_dict = {'ff2': [('flip', 'h')]}
+=======
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
 
 # img_rings_eta_dict is a dictionary of eta ranges (in degrees) for using ring masks
 img_ring_eta_dict = {'ff1': [],
                      'ff2': []}
+<<<<<<< HEAD
+img_ring_eta_dict = {'ff2': []}
+=======
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
 
 # mask_dict_file is the path to the detector image mask file for selecting
 # data for analysis from images
@@ -165,7 +208,12 @@ else:
 #*****************************************************************************
 #%% READ IN CURRENT IMAGES
 
+<<<<<<< HEAD
+pca_exp.overwrite_img_list_new(img_process_dict=img_process_dict, 
+                               frane_num_or_img_aggregation_options=[5, 7, 9, 11])
+=======
 pca_exp.overwrite_img_list_new(img_process_dict=img_process_dict, frane_num_or_img_aggregation_options=[0])
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
 
 #*****************************************************************************
 #%% ASSEMBLE THE PCA MATRIX
@@ -205,7 +253,57 @@ plt.show()
 #*****************************************************************************
 #%% UPDATE IMAGE LIST
 
+<<<<<<< HEAD
+pca_exp.update_img_list_new(img_process_dict=img_process_dict, 
+                            frane_num_or_img_aggregation_options=[5, 7, 9, 11])
+
+#*****************************************************************************
+# ASSEMBLE THE PCA MATRIX
+
+pca_matrix = pca_exp.assemble_data_matrix()
+
+#*****************************************************************************
+#% FIT AND TRANSFORM PCA MATRIX
+
+num_cmpts = 3
+PCA_func = decomposition.PCA(n_components=num_cmpts)
+transformer = Normalizer().fit(pca_matrix)
+pca_matrix = transformer.transform(pca_matrix)
+#PCs = PCA_func.fit_transform(pca_matrix)
+curr_fit = PCA_func.fit(pca_matrix)
+PCs = PCA_func.transform(pca_matrix)
+var_ratio = PCA_func.explained_variance_ratio_
+print(var_ratio)
+
+n = -10
+alpha = 0.50
+base_size = 20
+max_size = 60
+grow_size = np.linspace(base_size, max_size, num=np.abs(n))
+
+# plot results
+fig, ax = plt.subplots(nrows=2, ncols=num_cmpts, num=1)
+for i in range(num_cmpts):
+    ax[0, i].scatter(pca_exp.dic_output_data[:n, 1], pca_exp.dic_output_data[:n, 0], 
+                     c=PCs[:n, i], alpha=alpha, edgecolor='none', s=base_size)
+    ax[0, i].scatter(pca_exp.dic_output_data[n:, 1], pca_exp.dic_output_data[n:, 0], 
+                     c=PCs[n:, i], edgecolor='none', s=grow_size)
+    ax[0, i].set_xlabel('LD Strain')
+    ax[0, i].set_ylabel('LD Stress (MPa)')
+    ax[0, i].set_title('PC %i' %(i+1))
+    
+    ax[1, i].scatter(pca_exp.dic_output_data[:n, 2], PCs[:n, i], c='b', 
+                     s=base_size, alpha=alpha, edgecolor='none')
+    ax[1, i].scatter(pca_exp.dic_output_data[n:, 2], PCs[n:, i], c='b', 
+                     s=grow_size, edgecolor='none')
+    ax[1, i].set_xlabel('Load Step Num')
+    ax[1, i].set_ylabel('PC %i' %(i+1))
+    #ax[1, i].set_title('PC %i' %(i+1))
+
+plt.show()
+=======
 pca_exp.update_img_list_new(img_process_dict=img_process_dict, frane_num_or_img_aggregation_options=[0])
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
 
 #*****************************************************************************
 #%% CHECK ROI DATA

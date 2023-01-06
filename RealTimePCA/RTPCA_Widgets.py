@@ -339,10 +339,23 @@ class pca_parameters_selector_widget():
         self.fig.suptitle(self.fig_title)
         tot_mask = self.lodi_exp.total_img_mask_dict()
         for i, det_key in enumerate(self.first_ims_dict.keys()):
+<<<<<<< HEAD
+            if len(self.first_ims_dict.keys()) > 1:
+                self.first_img_ax[i].clear()
+                self.first_img_ax[i].title.set_text(det_key)
+                self.first_img_ax[i].imshow(self.first_ims_dict[det_key][0], vmax=self.vmax)
+                self.first_img_ax[i].imshow(tot_mask[det_key], vmax=1, cmap='Reds', alpha=0.1)
+            else:
+                self.first_img_ax.clear()
+                self.first_img_ax.title.set_text(det_key)
+                self.first_img_ax.imshow(self.first_ims_dict[det_key][0], vmax=self.vmax)
+                self.first_img_ax.imshow(tot_mask[det_key], vmax=1, cmap='Reds', alpha=0.1)
+=======
             self.first_img_ax[i].clear()
             self.first_img_ax[i].title.set_text(det_key)
             self.first_img_ax[i].imshow(self.first_ims_dict[det_key][0], vmax=self.vmax)
             self.first_img_ax[i].imshow(tot_mask[det_key], vmax=1, cmap='Reds', alpha=0.1)
+>>>>>>> 3b0ecb6565d08a5e078485c2ec88f34e0b61bdf9
             
         self.canvas.draw()
     
